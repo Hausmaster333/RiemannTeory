@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="data:,">
   <title>Теорема Римана</title>
-  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./style.css?v=2">
   <script>window.MathJax = {svg: {fontCache: 'global'}, startup: {typeset: false}};</script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=2"></script>
 </head>
 <body>
   <div class="app">
@@ -48,16 +48,41 @@
 
       <section class="visual" aria-label="График частичных сумм">
         <div class="visual-head">
-          <h1>Частичные суммы</h1>
-          <label class="zoom-label"><input id="zoom" type="checkbox"> Вблизи L</label>
+          <h1 id="visualTitle">Частичные суммы</h1>
+          <div class="visual-tools">
+            <div class="view-switch" role="group" aria-label="Вид визуализации">
+              <button id="historyView" type="button" aria-pressed="true">График</button>
+              <button id="centerView" type="button" aria-pressed="false">К цели L</button>
+            </div>
+            <label class="zoom-label"><input id="zoom" type="checkbox"> Вблизи L</label>
+          </div>
         </div>
-        <div class="legend" aria-label="Обозначения">
+        <div id="viewLegend" class="legend" aria-label="Обозначения">
           <span><i class="line original"></i>Без перестановки</span>
           <span><i class="line arranged"></i>После перестановки</span>
           <span><i class="line goal"></i>Цель L</span>
         </div>
-        <div class="chart-area"><canvas id="chart" role="img" aria-label="График частичных сумм"></canvas></div>
-        <div class="axis-caption">Число членов k</div>
+        <div class="chart-area">
+          <canvas id="chart" role="img" aria-label="График частичных сумм"></canvas>
+          <div id="centerStage" class="center-stage" role="img" aria-label="Приближение суммы к L" hidden>
+            <div class="center-plot">
+              <div id="toleranceBand" class="tolerance-band"></div>
+              <div class="target-guide"><span id="targetLabel"></span></div>
+              <div class="sum-lane original-lane">
+                <span class="lane-name">Без перестановки</span>
+                <div id="originalMarker" class="sum-marker"><i class="point"></i><span class="marker-value"></span></div>
+              </div>
+              <div class="sum-lane arranged-lane">
+                <span class="lane-name">После перестановки</span>
+                <div id="distanceLine" class="distance-line"></div>
+                <div id="sumTrail" class="sum-trail" aria-hidden="true"></div>
+                <div id="arrangedMarker" class="sum-marker"><i class="point"></i><span class="marker-value"></span></div>
+              </div>
+              <div id="centerTicks" class="center-ticks"><span></span><span></span><span></span><span></span><span></span></div>
+            </div>
+          </div>
+        </div>
+        <div id="axisCaption" class="axis-caption">Число членов k</div>
 
         <div class="metrics">
           <div><span>Сумма Sₖ</span><strong id="sum">—</strong></div>

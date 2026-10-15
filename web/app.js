@@ -11,6 +11,8 @@ const presets = {
   sine: ['1', '0', '1']
 };
 let kind = 'wave', params = null, result = null, step = 0, timer = null, debounce = null;
+let view = new URLSearchParams(location.search).get('view') === 'center' ? 'center' : 'history';
+let centeredSpan = 1, animateCenter = false;
 
 function read(id) {
   const text = el(id).value.trim().replace(',', '.');
@@ -73,6 +75,7 @@ function updateFormula(v) {
 function recompute() {
   debounce = null;
   stop();
+  animateCenter = false;
   try {
     params = values();
     result = calculate(params);
@@ -89,6 +92,11 @@ function recompute() {
     return;
   }
   step = 0;
+  centeredSpan = params.epsilon * 4;
+  for (let i = 0; i < result.rearranged.length; i++)
+    centeredSpan = Math.max(centeredSpan, Math.abs(result.rearranged[i] - params.target),
+      Math.abs(result.original[i] - params.target));
+  centeredSpan *= 1.12;
   el('position').max = Math.max(1, result.rearranged.length - 1);
   el('position').value = 0;
   if (result.stableStep === null) {
@@ -121,6 +129,11 @@ function selectPreset(next) {
 }
 
 function draw() {
+  if (view === 'center') {
+    el('centerStage').style.visibility = result && params ? 'visible' : 'hidden';
+    if (result && params) drawCentered();
+    return;
+  }
   const width = canvas.clientWidth, height = canvas.clientHeight;
   if (!width || !height) return;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -193,6 +206,66 @@ function draw() {
   g.fill(); g.stroke();
 }
 
+function drawCentered() {
+  const span = el('zoom').checked ? params.epsilon * 8 : centeredSpan;
+  const percent = value => 50 + (value - params.target) / span * 50;
+  const digits = Math.min(14, Math.max(3, Math.ceil(-Math.log10(params.epsilon)) + 2));
+  const tickDigits = Math.min(14, Math.max(0, Math.ceil(-Math.log10(span / 2)) + 1));
+  const formatTick = value => Number(value.toFixed(tickDigits)).toLocaleString('ru-RU', {maximumFractionDigits: tickDigits});
+  el('targetLabel').textContent = 'L = ' + params.target.toLocaleString('ru-RU', {maximumSignificantDigits: 15});
+  el('toleranceBand').style.width = Math.min(100, params.epsilon / span * 100) + '%';
+  el('toleranceBand').title = 'Допуск ± ε = ' + params.epsilon.toLocaleString('ru-RU', {maximumSignificantDigits: 6});
+  [...el('centerTicks').children].forEach((tick, i) => {
+    tick.textContent = i === 2 ? 'L' : formatTick(params.target + span * (i / 2 - 1));
+  });
+  for (const [id, value] of [['originalMarker', result.original[step]], ['arrangedMarker', result.rearranged[step]]]) {
+    const marker = el(id), raw = percent(value), position = Math.max(0, Math.min(100, raw));
+    marker.style.transition = animateCenter ? '' : 'none';
+    marker.style.left = position + '%';
+    marker.classList.toggle('outside', raw < 0 || raw > 100);
+    marker.classList.toggle('at-left', position < 10);
+    marker.classList.toggle('at-right', position > 90);
+    marker.querySelector('.point').textContent = raw < 0 ? '‹' : raw > 100 ? '›' : '';
+    marker.querySelector('.marker-value').textContent = decimal(value, digits);
+  }
+  const position = Math.max(0, Math.min(100, percent(result.rearranged[step])));
+  el('distanceLine').style.transition = animateCenter ? '' : 'none';
+  el('distanceLine').style.left = Math.min(50, position) + '%';
+  el('distanceLine').style.width = Math.abs(position - 50) + '%';
+  const trail = document.createDocumentFragment();
+  const first = Math.max(0, step - 10);
+  for (let i = first; i < step; i++) {
+    const position = percent(result.rearranged[i]);
+    if (position < 0 || position > 100) continue;
+    const dot = document.createElement('i');
+    dot.style.left = position + '%';
+    dot.style.opacity = .08 + .3 * (i - first) / Math.max(1, step - first);
+    trail.append(dot);
+  }
+  el('sumTrail').replaceChildren(trail);
+}
+
+function setView(next, updateUrl = true) {
+  stop();
+  view = next;
+  animateCenter = false;
+  const centered = view === 'center';
+  canvas.hidden = centered;
+  el('centerStage').hidden = !centered;
+  el('viewLegend').hidden = centered;
+  el('historyView').setAttribute('aria-pressed', String(!centered));
+  el('centerView').setAttribute('aria-pressed', String(centered));
+  el('visualTitle').textContent = centered ? 'Приближение к L' : 'Частичные суммы';
+  el('axisCaption').textContent = centered ? 'Значение частичной суммы Sₖ' : 'Число членов k';
+  if (updateUrl) {
+    const url = new URL(location.href);
+    if (centered) url.searchParams.set('view', 'center');
+    else url.searchParams.delete('view');
+    history.replaceState(null, '', url);
+  }
+  draw();
+}
+
 function updateStep() {
   if (!result || !params) return;
   el('position').value = step;
@@ -201,10 +274,13 @@ function updateStep() {
   el('error').textContent = decimal(Math.abs(result.rearranged[step] - params.target), digits);
   el('count').textContent = countText(step);
   canvas.setAttribute('aria-label', 'Частичные суммы: шаг ' + step + ', сумма ' + el('sum').textContent);
+  el('centerStage').setAttribute('aria-label', 'Цель L = ' + params.target + ', шаг ' + step + ', сумма ' + el('sum').textContent);
   draw();
 }
 
-function moveTo(n) {
+function moveTo(n, animate = false) {
+  if (!result) return;
+  animateCenter = animate && view === 'center';
   step = Math.max(0, Math.min(result.rearranged.length - 1, n));
   updateStep();
 }
@@ -215,9 +291,11 @@ dialog.addEventListener('click', event => { if (event.target === dialog) dialog.
 document.querySelectorAll('.preset').forEach(button =>
   button.addEventListener('click', () => selectPreset(button.dataset.kind)));
 fields.forEach(id => el(id).addEventListener('input', schedule));
-el('zoom').addEventListener('change', draw);
+el('historyView').addEventListener('click', () => setView('history'));
+el('centerView').addEventListener('click', () => setView('center'));
+el('zoom').addEventListener('change', () => { animateCenter = false; draw(); });
 el('position').addEventListener('input', event => { stop(); moveTo(Number(event.target.value)); });
-el('step').addEventListener('click', () => { stop(); if (result) moveTo(step + 1); });
+el('step').addEventListener('click', () => { stop(); if (result) moveTo(step + 1, true); });
 el('reset').addEventListener('click', () => { stop(); if (result) moveTo(0); });
 el('play').addEventListener('click', () => {
   if (timer !== null) { stop(); return; }
@@ -226,14 +304,15 @@ el('play').addEventListener('click', () => {
   el('play').textContent = 'Пауза';
   const tick = () => {
     const increment = Number.parseInt(el('speed').value, 10);
-    moveTo(step + increment);
+    moveTo(step + increment, true);
     if (step >= result.rearranged.length - 1) stop();
   };
   tick();
-  if (timer === null && step < result.rearranged.length - 1) timer = setInterval(tick, 55);
+  if (timer === null && step < result.rearranged.length - 1) timer = setInterval(tick, view === 'center' ? 400 : 55);
 });
 new ResizeObserver(draw).observe(canvas.parentElement);
 document.querySelector('[data-kind="wave"]').classList.add('active');
+setView(view, false);
 recompute();
 window.addEventListener('load', () => {
   if (window.MathJax?.typesetPromise)
