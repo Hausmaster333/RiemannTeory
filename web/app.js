@@ -13,6 +13,8 @@ const presets = {
 let kind = 'wave', params = null, result = null, step = 0, timer = null, debounce = null;
 let view = new URLSearchParams(location.search).get('view') === 'center' ? 'center' : 'history';
 let centeredSpan = 1, centerMotionMs = 0;
+let arcStep = 0, arcSpan = null, arcResult = null, arcWidth = 0, arcHeight = 0, arcDpr = 0;
+let markerAnimation = null, markerStep = -1, markerSpan = null, markerResult = null;
 
 function read(id) {
   const text = el(id).value.trim().replace(',', '.');
@@ -205,6 +207,46 @@ function draw() {
   g.fill(); g.stroke();
 }
 
+function arcGeometry(index, span, width, height) {
+  const x = value => Math.max(0, Math.min(width, width / 2 + (value - params.target) / span * width / 2));
+  const start = x(result.rearranged[Math.max(0, index - 1)]);
+  const end = x(result.rearranged[index]);
+  return {start, end, baseline: height * .53,
+    lift: Math.min(Math.abs(end - start) * .3, height * .25),
+    direction: end >= start ? -1 : 1};
+}
+
+function drawArcs(span) {
+  const trail = el('sumArcs'), width = trail.clientWidth, height = trail.clientHeight;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const rebuild = result !== arcResult || span !== arcSpan || step < arcStep ||
+    width !== arcWidth || height !== arcHeight || dpr !== arcDpr;
+  if (rebuild) {
+    trail.width = Math.round(width * dpr);
+    trail.height = Math.round(height * dpr);
+    arcStep = 0;
+  }
+  const g = trail.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.strokeStyle = '#34658133';
+  g.lineWidth = 1.4;
+  for (let i = arcStep + 1; i <= step; i++) {
+    const arc = arcGeometry(i, span, width, height);
+    if (arc.start === arc.end) continue;
+    g.beginPath();
+    g.moveTo(arc.start, arc.baseline);
+    g.quadraticCurveTo((arc.start + arc.end) / 2, arc.baseline + arc.direction * arc.lift * 2, arc.end, arc.baseline);
+    g.stroke();
+  }
+  arcStep = step;
+  arcSpan = span;
+  arcResult = result;
+  arcWidth = width;
+  arcHeight = height;
+  arcDpr = dpr;
+  return {arc: arcGeometry(step, span, width, height), rebuild, width};
+}
+
 function drawCentered() {
   const span = el('zoom').checked ? params.epsilon * 4 : centeredSpan;
   const percent = value => 50 + (value - params.target) / span * 50;
@@ -220,28 +262,29 @@ function drawCentered() {
   const value = result.rearranged[step], raw = percent(value);
   const position = Math.max(0, Math.min(100, raw));
   const marker = el('arrangedMarker');
-  marker.style.transition = centerMotionMs ? 'left ' + centerMotionMs + 'ms linear' : 'none';
-  marker.style.left = position + '%';
+  const {arc, rebuild, width} = drawArcs(span);
+  if (step !== markerStep || span !== markerSpan || result !== markerResult || rebuild) {
+    if (markerAnimation) markerAnimation.cancel();
+    marker.style.left = position + '%';
+    marker.style.top = '-1px';
+    if (centerMotionMs && step === markerStep + 1 && span === markerSpan && result === markerResult &&
+        !window.matchMedia('(prefers-reduced-motion: reduce)').matches && width) {
+      const frames = Array.from({length: 17}, (_, i) => {
+        const t = i / 16;
+        return {left: (arc.start + (arc.end - arc.start) * t) / width * 100 + '%',
+          top: -1 + arc.direction * 4 * arc.lift * t * (1 - t) + 'px'};
+      });
+      markerAnimation = marker.animate(frames, {duration: centerMotionMs, easing: 'linear'});
+    }
+    markerStep = step;
+    markerSpan = span;
+    markerResult = result;
+  }
   marker.classList.toggle('outside', raw < 0 || raw > 100);
   marker.classList.toggle('at-left', position < 10);
   marker.classList.toggle('at-right', position > 90);
   marker.querySelector('.point').textContent = raw < 0 ? '‹' : raw > 100 ? '›' : '';
   marker.querySelector('.marker-value').textContent = decimal(value, digits);
-  el('distanceLine').style.transition = centerMotionMs
-    ? 'left ' + centerMotionMs + 'ms linear, width ' + centerMotionMs + 'ms linear' : 'none';
-  el('distanceLine').style.left = Math.min(50, position) + '%';
-  el('distanceLine').style.width = Math.abs(position - 50) + '%';
-  const trail = document.createDocumentFragment();
-  const first = Math.max(0, step - 10);
-  for (let i = first; i < step; i++) {
-    const position = percent(result.rearranged[i]);
-    if (position < 0 || position > 100) continue;
-    const dot = document.createElement('i');
-    dot.style.left = position + '%';
-    dot.style.opacity = .08 + .3 * (i - first) / Math.max(1, step - first);
-    trail.append(dot);
-  }
-  el('sumTrail').replaceChildren(trail);
 }
 
 function setView(next, updateUrl = true) {

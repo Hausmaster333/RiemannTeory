@@ -6,10 +6,10 @@
   <meta name="theme-color" content="#ffffff">
   <link rel="icon" href="data:,">
   <title>Теорема Римана</title>
-  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./style.css?v=4">
   <script>window.MathJax = {svg: {fontCache: 'global'}, startup: {typeset: false}};</script>
   <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script type="module" src="./app.js?v=3"></script>
+  <script type="module" src="./app.js?v=4"></script>
 </head>
 <body>
   <div class="app">
@@ -68,9 +68,8 @@
             <div class="center-plot">
               <div id="toleranceBand" class="tolerance-band"></div>
               <div class="target-guide"><span id="targetLabel"></span></div>
+              <canvas id="sumArcs" class="sum-arcs" aria-hidden="true"></canvas>
               <div class="sum-lane arranged-lane">
-                <div id="distanceLine" class="distance-line"></div>
-                <div id="sumTrail" class="sum-trail" aria-hidden="true"></div>
                 <div id="arrangedMarker" class="sum-marker"><i class="point"></i><span class="marker-value"></span></div>
               </div>
               <div id="centerTicks" class="center-ticks"><span></span><span></span><span></span><span></span><span></span></div>
