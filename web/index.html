@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="icon" href="data:,">
+  <title>Теорема Римана</title>
+  <link rel="stylesheet" href="./style.css">
+  <script>window.MathJax = {svg: {fontCache: 'global'}, startup: {typeset: false}};</script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <header class="formula-bar">
+      <button id="seriesButton" class="formula-button" type="button" aria-label="Выбрать ряд" title="Выбрать ряд">
+        <span id="formula" class="formula"></span>
+        <span class="chevron" aria-hidden="true">⌄</span>
+      </button>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Параметры">
+        <div class="side-section">ЦЕЛЬ</div>
+        <label for="target">Сумма L</label>
+        <input id="target" type="text" inputmode="decimal" value="2" autocomplete="off">
+        <label for="epsilon">Точность ε</label>
+        <input id="epsilon" type="text" inputmode="decimal" value="0,05" autocomplete="off">
+
+        <div class="side-section estimate-heading">ШАГОВ ДО ТОЧНОСТИ ε</div>
+        <div id="estimate" class="estimate" aria-live="polite">—</div>
+        <div id="estimateNote" class="estimate-note"></div>
+
+        <div class="side-section parameters-heading">ПАРАМЕТРЫ РЯДА</div>
+        <label id="aLabel" for="a">Коэффициент A</label>
+        <input id="a" type="text" inputmode="decimal" value="1,5" autocomplete="off">
+        <div id="bField" class="field">
+          <label for="b">Коэффициент B</label>
+          <input id="b" type="text" inputmode="decimal" value="0,5" autocomplete="off">
+        </div>
+        <div id="pField" class="field">
+          <label for="p">Степень p</label>
+          <input id="p" type="text" inputmode="decimal" value="0,6" autocomplete="off">
+        </div>
+        <div id="validation" class="validation" role="status">A &gt; |B| · 0 &lt; p ≤ 1</div>
+      </aside>
+
+      <section class="visual" aria-label="График частичных сумм">
+        <div class="visual-head">
+          <h1>Частичные суммы</h1>
+          <label class="zoom-label"><input id="zoom" type="checkbox"> Вблизи L</label>
+        </div>
+        <div class="legend" aria-label="Обозначения">
+          <span><i class="line original"></i>Без перестановки</span>
+          <span><i class="line arranged"></i>После перестановки</span>
+          <span><i class="line goal"></i>Цель L</span>
+        </div>
+        <div class="chart-area"><canvas id="chart" role="img" aria-label="График частичных сумм"></canvas></div>
+        <div class="axis-caption">Число членов k</div>
+
+        <div class="metrics">
+          <div><span>Сумма Sₖ</span><strong id="sum">—</strong></div>
+          <div><span>Ошибка |Sₖ−L|</span><strong id="error">—</strong></div>
+          <div><span>Взято членов</span><strong id="count">—</strong></div>
+        </div>
+        <div class="transport">
+          <input id="position" type="range" min="0" max="1" value="0" aria-label="Текущий шаг">
+          <div class="transport-row">
+            <div class="buttons">
+              <button id="play" class="primary" type="button">Воспроизвести</button>
+              <button id="step" type="button">Шаг</button>
+              <button id="reset" type="button">Сначала</button>
+            </div>
+            <label class="speed">Скорость <select id="speed"><option>1x</option><option selected>5x</option><option>20x</option></select></label>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="seriesDialog" aria-labelledby="dialogTitle">
+    <div class="dialog-head"><h2 id="dialogTitle">Выбрать ряд</h2><button id="closeDialog" type="button" aria-label="Закрыть">×</button></div>
+    <div class="preset-list">
+      <button class="preset" type="button" data-kind="wave"><b>Параметрический</b><span class="preset-formula">\(\sum_{n=1}^{\infty}(-1)^{n+1}\frac{A+B\sin n}{n^p}\)</span></button>
+      <button class="preset" type="button" data-kind="harmonic"><b>Гармонический</b><span class="preset-formula">\(\sum_{n=1}^{\infty}(-1)^{n+1}\frac{C}{n}\)</span></button>
+      <button class="preset" type="button" data-kind="leibniz"><b>Ряд Лейбница</b><span class="preset-formula">\(\sum_{n=1}^{\infty}(-1)^{n+1}\frac{C}{2n-1}\)</span></button>
+      <button class="preset" type="button" data-kind="sine"><b>Синусный</b><span class="preset-formula">\(\sum_{n=1}^{\infty}\frac{C\sin n}{n}\)</span></button>
+    </div>
+  </dialog>
+</body>
+</html>

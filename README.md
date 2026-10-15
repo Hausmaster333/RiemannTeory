@@ -1,5 +1,7 @@
 # Теорема Римана
 
+Веб-версия: [открыть в браузере](http://193.233.90.86/riemann/). Все расчёты выполняются в браузере; установка не требуется.
+
 Скачайте [Riemann.exe](https://github.com/Hausmaster333/RiemannTeory/releases/download/v1.0.0/Riemann.exe) и откройте файл на Windows. Python устанавливать не нужно. Нажмите на формулу или «Выбрать ряд», чтобы переключить пример. Цель `L` и точность `ε` при переключении сохраняются.
 
 Доступны четыре условно сходящихся ряда:
@@ -26,3 +28,5 @@ python -m venv .venv
 .\.venv\Scripts\python.exe app.py
 .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --onefile --windowed --name Riemann app.py
 ```
+
+Для проверки расчётов веб-версии: `node web/test_series.mjs`. Для локального просмотра достаточно отдать каталог `web/` любым статическим HTTP-сервером.
