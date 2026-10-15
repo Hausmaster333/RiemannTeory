@@ -12,7 +12,7 @@ const presets = {
 };
 let kind = 'wave', params = null, result = null, step = 0, timer = null, debounce = null;
 let view = new URLSearchParams(location.search).get('view') === 'center' ? 'center' : 'history';
-let centeredSpan = 1, animateCenter = false;
+let centeredSpan = 1, centerMotionMs = 0;
 
 function read(id) {
   const text = el(id).value.trim().replace(',', '.');
@@ -27,7 +27,7 @@ function values() {
 }
 
 function stop() {
-  if (timer !== null) clearInterval(timer);
+  if (timer !== null) clearTimeout(timer);
   timer = null;
   el('play').textContent = 'Воспроизвести';
 }
@@ -75,7 +75,7 @@ function updateFormula(v) {
 function recompute() {
   debounce = null;
   stop();
-  animateCenter = false;
+  centerMotionMs = 0;
   try {
     params = values();
     result = calculate(params);
@@ -94,8 +94,7 @@ function recompute() {
   step = 0;
   centeredSpan = params.epsilon * 4;
   for (let i = 0; i < result.rearranged.length; i++)
-    centeredSpan = Math.max(centeredSpan, Math.abs(result.rearranged[i] - params.target),
-      Math.abs(result.original[i] - params.target));
+    centeredSpan = Math.max(centeredSpan, Math.abs(result.rearranged[i] - params.target));
   centeredSpan *= 1.12;
   el('position').max = Math.max(1, result.rearranged.length - 1);
   el('position').value = 0;
@@ -207,7 +206,7 @@ function draw() {
 }
 
 function drawCentered() {
-  const span = el('zoom').checked ? params.epsilon * 8 : centeredSpan;
+  const span = el('zoom').checked ? params.epsilon * 4 : centeredSpan;
   const percent = value => 50 + (value - params.target) / span * 50;
   const digits = Math.min(14, Math.max(3, Math.ceil(-Math.log10(params.epsilon)) + 2));
   const tickDigits = Math.min(14, Math.max(0, Math.ceil(-Math.log10(span / 2)) + 1));
@@ -218,18 +217,18 @@ function drawCentered() {
   [...el('centerTicks').children].forEach((tick, i) => {
     tick.textContent = i === 2 ? 'L' : formatTick(params.target + span * (i / 2 - 1));
   });
-  for (const [id, value] of [['originalMarker', result.original[step]], ['arrangedMarker', result.rearranged[step]]]) {
-    const marker = el(id), raw = percent(value), position = Math.max(0, Math.min(100, raw));
-    marker.style.transition = animateCenter ? '' : 'none';
-    marker.style.left = position + '%';
-    marker.classList.toggle('outside', raw < 0 || raw > 100);
-    marker.classList.toggle('at-left', position < 10);
-    marker.classList.toggle('at-right', position > 90);
-    marker.querySelector('.point').textContent = raw < 0 ? '‹' : raw > 100 ? '›' : '';
-    marker.querySelector('.marker-value').textContent = decimal(value, digits);
-  }
-  const position = Math.max(0, Math.min(100, percent(result.rearranged[step])));
-  el('distanceLine').style.transition = animateCenter ? '' : 'none';
+  const value = result.rearranged[step], raw = percent(value);
+  const position = Math.max(0, Math.min(100, raw));
+  const marker = el('arrangedMarker');
+  marker.style.transition = centerMotionMs ? 'left ' + centerMotionMs + 'ms linear' : 'none';
+  marker.style.left = position + '%';
+  marker.classList.toggle('outside', raw < 0 || raw > 100);
+  marker.classList.toggle('at-left', position < 10);
+  marker.classList.toggle('at-right', position > 90);
+  marker.querySelector('.point').textContent = raw < 0 ? '‹' : raw > 100 ? '›' : '';
+  marker.querySelector('.marker-value').textContent = decimal(value, digits);
+  el('distanceLine').style.transition = centerMotionMs
+    ? 'left ' + centerMotionMs + 'ms linear, width ' + centerMotionMs + 'ms linear' : 'none';
   el('distanceLine').style.left = Math.min(50, position) + '%';
   el('distanceLine').style.width = Math.abs(position - 50) + '%';
   const trail = document.createDocumentFragment();
@@ -248,9 +247,10 @@ function drawCentered() {
 function setView(next, updateUrl = true) {
   stop();
   view = next;
-  animateCenter = false;
+  centerMotionMs = 0;
   const centered = view === 'center';
   canvas.hidden = centered;
+  canvas.parentElement.classList.toggle('centered', centered);
   el('centerStage').hidden = !centered;
   el('viewLegend').hidden = centered;
   el('historyView').setAttribute('aria-pressed', String(!centered));
@@ -278,9 +278,9 @@ function updateStep() {
   draw();
 }
 
-function moveTo(n, animate = false) {
+function moveTo(n, duration = 0) {
   if (!result) return;
-  animateCenter = animate && view === 'center';
+  centerMotionMs = view === 'center' ? duration : 0;
   step = Math.max(0, Math.min(result.rearranged.length - 1, n));
   updateStep();
 }
@@ -293,22 +293,33 @@ document.querySelectorAll('.preset').forEach(button =>
 fields.forEach(id => el(id).addEventListener('input', schedule));
 el('historyView').addEventListener('click', () => setView('history'));
 el('centerView').addEventListener('click', () => setView('center'));
-el('zoom').addEventListener('change', () => { animateCenter = false; draw(); });
+el('zoom').addEventListener('change', () => { centerMotionMs = 0; draw(); });
 el('position').addEventListener('input', event => { stop(); moveTo(Number(event.target.value)); });
-el('step').addEventListener('click', () => { stop(); if (result) moveTo(step + 1, true); });
+el('step').addEventListener('click', () => { stop(); if (result) moveTo(step + 1, 240); });
 el('reset').addEventListener('click', () => { stop(); if (result) moveTo(0); });
+function playbackDelay() {
+  return 400 / Number.parseInt(el('speed').value, 10);
+}
+
+function playTick() {
+  if (!result) { stop(); return; }
+  const delay = playbackDelay();
+  moveTo(step + 1, delay * .8);
+  if (step >= result.rearranged.length - 1) stop();
+  else timer = setTimeout(playTick, delay);
+}
+
+el('speed').addEventListener('change', () => {
+  if (timer === null) return;
+  clearTimeout(timer);
+  timer = setTimeout(playTick, playbackDelay());
+});
 el('play').addEventListener('click', () => {
   if (timer !== null) { stop(); return; }
   if (!result) return;
   if (step >= result.rearranged.length - 1) moveTo(0);
   el('play').textContent = 'Пауза';
-  const tick = () => {
-    const increment = Number.parseInt(el('speed').value, 10);
-    moveTo(step + increment, true);
-    if (step >= result.rearranged.length - 1) stop();
-  };
-  tick();
-  if (timer === null && step < result.rearranged.length - 1) timer = setInterval(tick, view === 'center' ? 400 : 55);
+  playTick();
 });
 new ResizeObserver(draw).observe(canvas.parentElement);
 document.querySelector('[data-kind="wave"]').classList.add('active');

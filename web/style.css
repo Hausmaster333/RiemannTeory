@@ -38,27 +38,26 @@ h1{font-size:18px;line-height:1.3;margin:0;font-weight:700}
 .line.arranged{border-color:#1f2933}
 .line.goal{border-color:#346581;border-top-style:dashed}
 .chart-area{flex:none;height:min(46vh,490px);min-height:250px;position:relative}
+.chart-area.centered{height:min(54vh,560px);min-height:350px}
 #chart{display:block;width:100%;height:100%}
 .center-stage{width:100%;height:100%;position:relative}
-.center-plot{position:absolute;inset:46px 32px 42px}
+.center-plot{position:absolute;inset:60px 20px 48px}
 .target-guide{position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #346581;z-index:1}
-.target-guide>span{position:absolute;top:-31px;left:0;transform:translateX(-50%);white-space:nowrap;color:#254e67;font-size:16px;font-weight:600;background:#fff;padding:0 8px}
+.target-guide>span{position:absolute;top:-39px;left:0;transform:translateX(-50%);white-space:nowrap;color:#254e67;font-size:21px;font-weight:600;background:#fff;padding:0 8px}
 .tolerance-band{position:absolute;top:0;bottom:0;background:#eaf2f6;min-width:2px;transform:translateX(-50%);left:50%}
 .sum-lane{position:absolute;left:0;right:0;border-top:1px solid #d7dfe3;z-index:2}
-.original-lane{top:29%}
-.arranged-lane{top:73%}
-.lane-name{position:absolute;top:-28px;left:0;font-size:12px;color:#68737d;background:#fff;padding-right:8px}
-.sum-marker{position:absolute;top:-1px;left:0;transition:left .32s ease-in-out;z-index:3}
+.arranged-lane{top:53%}
+.sum-marker{position:absolute;top:-1px;left:0;z-index:3}
 .point{position:absolute;display:flex;align-items:center;justify-content:center;left:0;top:0;transform:translate(-50%,-50%);width:13px;height:13px;border:2px solid #fff;border-radius:50%;background:#a9b3b9;color:#fff;font-size:14px;font-style:normal;line-height:1}
-.arranged-lane .point{width:17px;height:17px;background:#346581;box-shadow:0 0 0 4px #34658114}
-.sum-marker.outside .point{width:20px;height:20px}
-.marker-value{position:absolute;top:14px;left:0;transform:translateX(-50%);font-size:13px;white-space:nowrap;color:#68737d;background:#fff;padding:2px 5px}
+.arranged-lane .point{width:29px;height:29px;background:#346581;box-shadow:0 0 0 7px #34658114}
+.sum-marker.outside .point{font-size:23px}
+.marker-value{position:absolute;top:24px;left:0;transform:translateX(-50%);font-size:20px;white-space:nowrap;color:#68737d;background:#fff;padding:2px 5px}
 .arranged-lane .marker-value{font-weight:600;color:#1f2933}
 .sum-marker.at-left .marker-value{transform:none;left:-5px}
 .sum-marker.at-right .marker-value{transform:translateX(-100%);left:5px}
-.distance-line{position:absolute;top:-2px;height:3px;background:#34658135;transition:left .32s ease-in-out,width .32s ease-in-out}
-.sum-trail i{position:absolute;top:-3px;width:5px;height:5px;border-radius:50%;background:#346581;transform:translateX(-50%)}
-.center-ticks{position:absolute;left:0;right:0;bottom:-26px;display:flex;justify-content:space-between;font-size:11px;color:#68737d}
+.distance-line{position:absolute;top:-2px;height:3px;background:#34658135}
+.sum-trail i{position:absolute;top:-4px;width:7px;height:7px;border-radius:50%;background:#346581;transform:translateX(-50%)}
+.center-ticks{position:absolute;left:0;right:0;bottom:-30px;display:flex;justify-content:space-between;font-size:13px;color:#68737d}
 .center-ticks span{width:0;text-align:center;white-space:nowrap;display:flex;justify-content:center}
 .center-ticks span:first-child{justify-content:flex-start}
 .center-ticks span:last-child{justify-content:flex-end}
@@ -108,9 +107,8 @@ h2{font-size:18px;margin:0}
   .visual-head h1{font-size:16px}
   .visual-head{flex-wrap:wrap}
   .visual-tools{width:100%;justify-content:space-between;gap:10px}
-  .center-plot{inset:46px 20px 42px}
-  .target-guide>span{font-size:14px}
-  .marker-value{font-size:12px}
+  .center-plot{inset:60px 12px 44px}
+  .chart-area.centered{height:340px;min-height:0}
   .legend{gap:6px 13px;font-size:11px}
   .legend span{gap:5px}
   .line{width:17px}
@@ -122,4 +120,4 @@ h2{font-size:18px;margin:0}
   .buttons button{padding:7px 11px;font-size:13px}
   .speed{align-self:flex-end}
 }
-@media(prefers-reduced-motion:reduce){.sum-marker,.distance-line{transition:none}}
+@media(prefers-reduced-motion:reduce){.sum-marker,.distance-line{transition:none!important}}
